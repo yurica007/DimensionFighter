@@ -15,9 +15,14 @@ public:
 	virtual void Finalize();
 
 protected:
+	void FadeinUpdate();
+	void FadeoutUpdate();
+
 	virtual bool IsTransScene(const InputState& inputState) { return false; }
 
 	SceneManager& manager_;
+	int fadeTimer;
+	int fadeValue;
 };
 
 

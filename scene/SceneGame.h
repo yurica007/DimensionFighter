@@ -1,14 +1,14 @@
 #pragma once
 #include "SceneBase.h"
+#include "../TimeDatah.h"
+#include <vector>
 
-class Player;
 class Stage;
+class CharacterManager;
+class UITime;
+class UILife;
 
-struct Time
-{
-	int minutes = 0;
-	int seconds = 0;
-};
+using namespace std;
 
 class SceneGame : public SceneBase
 {
@@ -21,13 +21,20 @@ public:
 	virtual void Draw() override;
 	virtual void Finalize() override;
 
+	void SetTranceTime(const int currentTime);
+
 private:
 	virtual bool IsTransScene(const InputState& inputState) override;
 
 	Stage* stage;
-	Player* player;
+	CharacterManager* character;
+	UITime* time;
+	vector<UILife*> life;
 
-	Time currentTime;
 	int prevTime;
+	Time currentTime;
+
+	int startCount;
+	int countDown;
 };
 

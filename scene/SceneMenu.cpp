@@ -1,5 +1,6 @@
 #include "SceneMenu.h"
 #include "SceneManager.h"
+#include "SceneTitle.h"
 #include "SceneGame.h"
 #include "../InputState.h"
 #include <sstream>
@@ -9,7 +10,7 @@ namespace
 {
 	const VECTOR initMenuPos = { 500.0f, 360.0f, 0.0f };
 
-	const char* const menuFilePath = "resource/MenuData.csv";
+	const char* const menuFilePath = "data/MenuData.csv";
 
 	enum
 	{
@@ -41,6 +42,8 @@ void SceneMenu::Initialize()
 		data.push_back(menuData);
 	}
 
+	menu.resize(data.size());
+
 	for (int i = 0; i < menu.size(); i++)
 	{
 		menu[i].name = data[i].name;
@@ -67,11 +70,11 @@ void SceneMenu::Draw()
 {
 	for (int i = 0; i < menu.size(); i++)
 	{
-		DrawString(menu[i].pos.x, menu[i].pos.y, menu[i].name.c_str(), 0xffffff);
+		DrawStringF(menu[i].pos.x, menu[i].pos.y, menu[i].name.c_str(), 0xffffff);
 		
 		if (currentIndex == i)
 		{
-			DrawString(menu[i].pos.x - 30, menu[i].pos.y, "Z", 0xffffff);
+			DrawStringF(menu[i].pos.x - 30, menu[i].pos.y, "Z", 0xffffff);
 		}
 	}
 	DrawBox(0, 1280, 0, 720, 0xaaaaaa, true);
@@ -88,10 +91,20 @@ bool SceneMenu::IsTransScene(const InputState& inputState)
 		switch (currentIndex)
 		{
 		case 0:
+		{
 			manager_.PopScene();
+			SceneGame* prevScene = new SceneGame(manager_);
+			const int currentTime = GetNowCount();
+			prevScene->SetTranceTime(currentTime);
 			break;
+		}
 		case 1:
+		{
+			SceneTitle* nextScene = new SceneTitle(manager_);
+			manager_.ChangeScene(nextScene);
+			nextScene->Initialize();
 			break;
+		}			
 		case 2:
 			manager_.EndScene();
 			break;
@@ -100,6 +113,8 @@ bool SceneMenu::IsTransScene(const InputState& inputState)
 		}
 		return true;
 	}
+
+	return false;
 }
 
 vector<string> SceneMenu::split(const string& input, const char delimiter)

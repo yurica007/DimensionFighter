@@ -1,5 +1,4 @@
 #pragma once
-
 #include <deque>
 
 class SceneBase;

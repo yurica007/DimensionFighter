@@ -4,13 +4,15 @@
 
 namespace
 {
-	const char* const stageFilePath = "resource/StageData.csv";
-	const char* const cubeModelPath = "resource/model/Cube.mv1";
+	const char* const stageFilePath = "data/StageData.csv";
+	const char* const textureDataFilePath = "data/TextureData.csv";
+	const char* const cubeModelPath = "data/model/Cube.mv1";
 
-	const char* const blueTexturePath = "resource/model/texture/Blue.png";
-	const char* const pinkTexturePath = "resource/model/texture/Pink.png";
+	const char* const textureFilePath = "data/model/texture/stage/";
+	const char* const dataExtension = ".png";
 
-	const VECTOR gravity = { 0.0f, -0.1f, 0.0f };
+	const char* const lightTexturePath = "data/model/texture/StageLight.png";
+	const char* const darkTexturePath = "data/model/texture/StageDark.png";
 
 	enum
 	{
@@ -20,8 +22,9 @@ namespace
 
 Stage::Stage() :
 	stageSize(0), stageMaxSize(0),
-	modelSize({ 0.0f, 0.0f, 0.0f }), 
-	initPos({ 0.0f, 0.0f, 0.0f })
+	modelSize({ 0.0f, 0.0f, 0.0f }),
+	fallPlayer(-1),
+	darkTexture(0)
 {
 }
 
@@ -34,23 +37,36 @@ void Stage::Initialize()
 	LoadStage();
 	LoadModelHandle();
 	InitializeStage();
+	LoadTexture();
 }
 
 void Stage::Update()
 {
 	for (int i = 0; i < stageMaxSize; i++)
 	{
-		if (model[i].isFall)
+		if (cubeModel[i].isFall)
 		{
-			model[i].pos = VAdd(model[i].pos, gravity);
-			MV1SetPosition(model[i].handle, model[i].pos);
+			int index = fallPlayer;
+			if (modelInitTexture[i] == darkTexture) index = fallPlayer;
+			else index = fallPlayer + playerNum;
+
+			if (!cubeModel[i].isFalling) MV1SetTextureGraphHandle(cubeModel[i].handle, 0, modelTranceTexture[index], false);
+			cubeModel[i].isFall = false;
+			cubeModel[i].isFalling = true;
 		}
 
-		if (model[i].pos.y < - 10.0f)
+		if (cubeModel[i].isFalling)
 		{
-			model[i].isFall = false;
-			model[i].pos.y = 0.0f;
-			MV1SetPosition(model[i].handle, model[i].pos);
+			cubeModel[i].pos = VAdd(cubeModel[i].pos, gravity);
+			MV1SetPosition(cubeModel[i].handle, cubeModel[i].pos);
+		}
+
+		if (cubeModel[i].pos.y < deadLine)
+		{
+			cubeModel[i].isFalling = false;
+			cubeModel[i].pos.y = 0.0f;
+			MV1SetPosition(cubeModel[i].handle, cubeModel[i].pos);
+			MV1SetTextureGraphHandle(cubeModel[i].handle, 0, modelInitTexture[i], false);
 		}
 	}
 }
@@ -59,7 +75,7 @@ void Stage::Draw()
 {
 	for (int i = 0; i < stageMaxSize; i++)
 	{
-		MV1DrawModel(model[i].handle);
+		MV1DrawModel(cubeModel[i].handle);
 	}
 
 	//XYZ軸描画
@@ -73,64 +89,92 @@ void Stage::Finalize()
 {
 	for (int i = 0; i < stageMaxSize; i++)
 	{
-		MV1DeleteModel(model[i].handle);
+		MV1DeleteModel(cubeModel[i].handle);
 	}
 }
 
-void Stage::SelectFallCube(const PlayerData playerData)
+void Stage::SelectFallCube(const vector<VECTOR> direction, const vector<vector<int>> index)
 {
-	const float rotateY = playerData.rotate.y;
-	if (rotateY < 0.0f) return;
-
-	const int currentWidthNum = static_cast<int>(playerData.pos.x + stageSize / 2);
-	const int currentHeightNum = static_cast<int>(playerData.pos.z + stageSize / 2);
-
-	const int currentIndex = currentHeightNum * stageSize + currentWidthNum;
-
-	//ステージの端からステージ外方向には処理しない
-	if (currentHeightNum == 0 && rotateY == downVec) return;
-	if (currentWidthNum == 0 && rotateY == leftVec) return;
-	if (currentHeightNum == stageSize - 1 && rotateY == upVec) return;
-	if (currentWidthNum == stageSize - 1 && rotateY == rightVec) return;
-
-	int beginIndex = currentIndex;
-	int endIndex = currentIndex;
-	
-	if (rotateY == leftVec)
+	for (int i = 0; i < direction.size(); i++)
 	{
-		beginIndex -= 1;
-		endIndex = currentHeightNum * stageSize;
-	}
-	if (rotateY == rightVec)
-	{
-		beginIndex += 1;
-		endIndex = currentHeightNum * stageSize + (stageSize - 1);
-	}
+		const float rotateY = direction[i].y;
+		if (rotateY < 0.0f) continue;		
 
-	if (rotateY == upVec)
-	{
-		beginIndex += stageSize;
-		endIndex = stageMaxSize - (stageSize - currentWidthNum);
-	}
-	if (rotateY == downVec)
-	{
-		beginIndex -= stageSize;
-		endIndex = currentWidthNum;
-	}
+		const int currentWidthNum = index[i][0];
+		const int currentHeightNum = index[i][1];
 
-	SelectCubeLine(beginIndex, endIndex, currentIndex);
+		const int currentIndex = currentHeightNum * stageSize + currentWidthNum;
+
+		//ステージの端からステージ外方向には処理しない
+		if (currentHeightNum == 0 && rotateY == downVec) continue;
+		if (currentWidthNum == 0 && rotateY == leftVec) continue;
+		if (currentHeightNum == stageSize - 1 && rotateY == upVec) continue;
+		if (currentWidthNum == stageSize - 1 && rotateY == rightVec) continue;
+
+		int beginIndex = currentIndex;
+		int endIndex = currentIndex;
+
+		if (rotateY == leftVec)
+		{
+			beginIndex -= 1;
+			endIndex = currentHeightNum * stageSize;
+		}
+		if (rotateY == rightVec)
+		{
+			beginIndex += 1;
+			endIndex = currentHeightNum * stageSize + (stageSize - 1);
+		}
+
+		if (rotateY == upVec)
+		{
+			beginIndex += stageSize;
+			endIndex = stageMaxSize - (stageSize - currentWidthNum);
+		}
+		if (rotateY == downVec)
+		{
+			beginIndex -= stageSize;
+			endIndex = currentWidthNum;
+		}
+
+		SelectCubeLine(beginIndex, endIndex, currentIndex);
+		fallPlayer = i;
+	}	
 }
 
 const RECT Stage::GetStageSize()
 {
 	RECT stageMaxRange = { 0, 0, 0, 0 };
 	
-	stageMaxRange.left = static_cast<long>(initPos.x - modelSize.x / 2);
-	stageMaxRange.top = static_cast<long>(model[stageMaxSize - 1].pos.z + modelSize.z / 2);
-	stageMaxRange.right = static_cast<long>(model[stageMaxSize - 1].pos.x + modelSize.x / 2);
-	stageMaxRange.bottom = static_cast<long>(initPos.z - modelSize.z / 2);
+	stageMaxRange.left = static_cast<long>(cubeModel[0].pos.x - modelSize.x / 2);
+	stageMaxRange.top = static_cast<long>(cubeModel[stageMaxSize - 1].pos.z + modelSize.z / 2);
+	stageMaxRange.right = static_cast<long>(cubeModel[stageMaxSize - 1].pos.x + modelSize.x / 2);
+	stageMaxRange.bottom = static_cast<long>(cubeModel[0].pos.z - modelSize.z / 2);
 
 	return stageMaxRange;
+}
+
+const vector<vector<int>> Stage::GetStageFallData()
+{
+	vector<vector<int>> fallPos;
+	fallPos.resize(stageMaxSize);
+
+	for (int i = 0; i < stageMaxSize; i++)
+	{
+		if (cubeModel[i].isFalling)
+		{
+			const int posWidth = cubeModel[i].pos.x - modelSize.x / 2 + stageSize / 2;
+			const int posHeight = cubeModel[i].pos.z - modelSize.z / 2 + stageSize / 2;
+
+			fallPos[i].push_back(posWidth);
+			fallPos[i].push_back(posHeight);
+			continue;
+		}
+
+		fallPos[i].push_back(-1);
+		fallPos[i].push_back(-1);		
+	}
+
+	return fallPos;
 }
 
 void Stage::LoadStage()
@@ -153,24 +197,30 @@ void Stage::LoadStage()
 
 void Stage::LoadModelHandle()
 {
-	model.resize(stageMaxSize);
+	cubeModel.resize(stageMaxSize);
 
 	//モデルの読み込み
 	const int cubeHandle = MV1LoadModel(cubeModelPath);
 
-	const int colorBlue = LoadGraph(blueTexturePath);
-	const int colorPink = LoadGraph(pinkTexturePath);
+	const int colorLight = LoadGraph(lightTexturePath);
+	const int colorDark = LoadGraph(darkTexturePath);
+	darkTexture = colorDark;
+
 	for (int i = 0; i < stageMaxSize; i++)
 	{
 		//2色のモデルを交互に配置する
-		//偶数時しかできていないため改善余地あり
 		const int duplicateModel = MV1DuplicateModel(cubeHandle);
+		const bool isColorLight = (i / stageSize % 2 == i % stageSize % 2);
+		int texture = 0;
 
-		if (i / stageSize % 2 == i % 2) MV1SetTextureGraphHandle(duplicateModel, 0, colorBlue, false);
-		else MV1SetTextureGraphHandle(duplicateModel, 0, colorPink, false);
+		if (isColorLight) texture = colorLight;
+		else texture = colorDark;
 
-		model[i].handle = duplicateModel;
-		model[i].isFall = false;
+		MV1SetTextureGraphHandle(duplicateModel, 0, texture, false);
+		modelInitTexture.push_back(texture);
+
+		cubeModel[i].handle = duplicateModel;
+		cubeModel[i].isFall = false;
 	}
 
 	modelSize = { 1.0f, 1.0f , 1.0f };
@@ -186,7 +236,7 @@ void Stage::InitializeStage()
 	}
 
 	size *= -modelSize.x;
-	initPos = { size, 0.0f, size };
+	const VECTOR initPos = { size, 0.0f, size };
 
 	//座標をセット
 	VECTOR pos = initPos;
@@ -203,9 +253,29 @@ void Stage::InitializeStage()
 			const float depthNum = static_cast<float>(i / stageSize);
 			pos = VAdd(pos, VScale(depthSpace, depthNum));
 		}
-		model[i].pos = pos;
-		MV1SetPosition(model[i].handle, model[i].pos);
+		cubeModel[i].pos = pos;
+		MV1SetPosition(cubeModel[i].handle, cubeModel[i].pos);
 		pos = VAdd(pos, widthSpace);
+	}
+}
+
+void Stage::LoadTexture()
+{
+	ifstream ifs(textureDataFilePath);
+	string line;
+	vector<string> textureName;
+
+	while (getline(ifs, line))
+	{
+		vector<string> strvec = split(line, ',');
+		textureName.push_back(strvec[0]);
+	}
+
+	for (auto& texName : textureName)
+	{
+		const string texturePath = textureFilePath + texName + dataExtension;
+		const int texture = LoadGraph(texturePath.c_str());
+		modelTranceTexture.push_back(texture);
 	}
 }
 
@@ -218,7 +288,12 @@ void Stage::SelectCubeLine(const int beginIndex, const int endIndex, const int c
 		{
 			const bool widthLineCheck = i / stageSize == currentIndex / stageSize;
 			const bool heightLineCheck = i % stageSize == currentIndex % stageSize;
-			if (widthLineCheck || heightLineCheck) model[i].isFall = true;
+			const bool isnotFall = !cubeModel[i].isFall && !cubeModel[i].isFalling;
+
+			if (widthLineCheck || heightLineCheck && isnotFall)
+			{
+				cubeModel[i].isFall = true;
+			}
 		}
 	}
 	//下方向、左方向
@@ -228,7 +303,12 @@ void Stage::SelectCubeLine(const int beginIndex, const int endIndex, const int c
 		{
 			const bool widthLineCheck = i / stageSize == currentIndex / stageSize;
 			const bool heightLineCheck = i % stageSize == currentIndex % stageSize;
-			if (widthLineCheck || heightLineCheck) model[i].isFall = true;
+			const bool isnotFall = !cubeModel[i].isFall && !cubeModel[i].isFalling;
+
+			if (widthLineCheck || heightLineCheck && isnotFall)
+			{
+				cubeModel[i].isFall = true;
+			}
 		}
 	}
 }

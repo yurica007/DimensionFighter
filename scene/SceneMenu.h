@@ -9,7 +9,7 @@ using namespace std;
 struct Menu
 {
 	string name = "";
-	VECTOR pos;
+	VECTOR pos = { 0.0f, 0.0f, 0.0f };
 };
 
 class SceneMenu : public SceneBase

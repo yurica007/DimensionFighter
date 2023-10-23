@@ -41,4 +41,6 @@ bool SceneTitle::IsTransScene(const InputState& inputState)
 		nextScene->Initialize();
 		return true;
 	}
+
+	return false;
 }

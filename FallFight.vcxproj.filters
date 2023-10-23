@@ -16,6 +16,12 @@
     <Filter Include="scene">
       <UniqueIdentifier>{154844fe-b69a-4096-ae1f-9a6b424c89f4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="character">
+      <UniqueIdentifier>{56e03bb8-a525-4119-bd21-111f3133c0c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ui">
+      <UniqueIdentifier>{e337d99d-4336-4996-8602-c4ae7a22ef45}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -28,9 +34,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Camera.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Player.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Stage.cpp">
@@ -54,6 +57,33 @@
     <ClCompile Include="scene\SceneMenu.cpp">
       <Filter>scene</Filter>
     </ClCompile>
+    <ClCompile Include="character\CharacterBase.cpp">
+      <Filter>character</Filter>
+    </ClCompile>
+    <ClCompile Include="character\CharacterManager.cpp">
+      <Filter>character</Filter>
+    </ClCompile>
+    <ClCompile Include="character\Character1.cpp">
+      <Filter>character</Filter>
+    </ClCompile>
+    <ClCompile Include="character\Character2.cpp">
+      <Filter>character</Filter>
+    </ClCompile>
+    <ClCompile Include="character\Character3.cpp">
+      <Filter>character</Filter>
+    </ClCompile>
+    <ClCompile Include="character\Character4.cpp">
+      <Filter>character</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\UITime.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\UIBase.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\UILife.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GameData.h">
@@ -66,9 +96,6 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Camera.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Player.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Stage.h">
@@ -94,6 +121,39 @@
     </ClInclude>
     <ClInclude Include="scene\SceneMenu.h">
       <Filter>scene</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerData.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="character\CharacterBase.h">
+      <Filter>character</Filter>
+    </ClInclude>
+    <ClInclude Include="character\CharacterManager.h">
+      <Filter>character</Filter>
+    </ClInclude>
+    <ClInclude Include="character\Character1.h">
+      <Filter>character</Filter>
+    </ClInclude>
+    <ClInclude Include="character\Character2.h">
+      <Filter>character</Filter>
+    </ClInclude>
+    <ClInclude Include="character\Character3.h">
+      <Filter>character</Filter>
+    </ClInclude>
+    <ClInclude Include="character\Character4.h">
+      <Filter>character</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeDatah.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\UITime.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\UIBase.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\UILife.h">
+      <Filter>ui</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

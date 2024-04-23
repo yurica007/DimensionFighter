@@ -1,0 +1,9 @@
+ファイルのパス,ファイル名,拡張子
+data/ui/level/,backFrame,.png
+data/ui/level/,selectFrame,.png
+data/ui/level/,notSelectFrame,.png
+data/ui/level/,title,.png
+data/ui/level/,floppy,.png
+data/ui/level/,normal,.png
+data/ui/level/,powerful,.png
+data/ui/level/,morePowerful,.png

@@ -22,18 +22,12 @@
     <Filter Include="ui">
       <UniqueIdentifier>{e337d99d-4336-4996-8602-c4ae7a22ef45}</UniqueIdentifier>
     </Filter>
+    <Filter Include="tool">
+      <UniqueIdentifier>{4b7b7a00-4228-401c-acb7-c55f608d1693}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Geometry.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="InputState.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="Camera.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Stage.cpp">
@@ -54,48 +48,96 @@
     <ClCompile Include="scene\SceneTitle.cpp">
       <Filter>scene</Filter>
     </ClCompile>
-    <ClCompile Include="scene\SceneMenu.cpp">
+    <ClCompile Include="character\CharaBase.cpp">
+      <Filter>character</Filter>
+    </ClCompile>
+    <ClCompile Include="character\CharaManager.cpp">
+      <Filter>character</Filter>
+    </ClCompile>
+    <ClCompile Include="scene\SceneSelectLevel.cpp">
       <Filter>scene</Filter>
     </ClCompile>
-    <ClCompile Include="character\CharacterBase.cpp">
+    <ClCompile Include="tool\Camera.cpp">
+      <Filter>tool</Filter>
+    </ClCompile>
+    <ClCompile Include="tool\Collision3D.cpp">
+      <Filter>tool</Filter>
+    </ClCompile>
+    <ClCompile Include="tool\InputState.cpp">
+      <Filter>tool</Filter>
+    </ClCompile>
+    <ClCompile Include="tool\Load.cpp">
+      <Filter>tool</Filter>
+    </ClCompile>
+    <ClCompile Include="tool\SearchRoute.cpp">
+      <Filter>tool</Filter>
+    </ClCompile>
+    <ClCompile Include="character\PC.cpp">
       <Filter>character</Filter>
     </ClCompile>
-    <ClCompile Include="character\CharacterManager.cpp">
+    <ClCompile Include="tool\AI.cpp">
+      <Filter>tool</Filter>
+    </ClCompile>
+    <ClCompile Include="character\NPC.cpp">
       <Filter>character</Filter>
     </ClCompile>
-    <ClCompile Include="character\Character1.cpp">
-      <Filter>character</Filter>
+    <ClCompile Include="scene\SceneAlarum.cpp">
+      <Filter>scene</Filter>
     </ClCompile>
-    <ClCompile Include="character\Character2.cpp">
-      <Filter>character</Filter>
+    <ClCompile Include="ReuseData.cpp">
+      <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="character\Character3.cpp">
-      <Filter>character</Filter>
+    <ClCompile Include="scene\SceneMenuBase.cpp">
+      <Filter>scene</Filter>
     </ClCompile>
-    <ClCompile Include="character\Character4.cpp">
-      <Filter>character</Filter>
+    <ClCompile Include="scene\SceneMenuInGame.cpp">
+      <Filter>scene</Filter>
     </ClCompile>
-    <ClCompile Include="ui\UITime.cpp">
-      <Filter>ui</Filter>
+    <ClCompile Include="scene\SceneMenuEndGame.cpp">
+      <Filter>scene</Filter>
     </ClCompile>
-    <ClCompile Include="ui\UIBase.cpp">
+    <ClCompile Include="scene\SceneAlarumRetryGame.cpp">
+      <Filter>scene</Filter>
+    </ClCompile>
+    <ClCompile Include="scene\SceneAlarumFinishGame.cpp">
+      <Filter>scene</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\UIMenu.cpp">
       <Filter>ui</Filter>
     </ClCompile>
     <ClCompile Include="ui\UILife.cpp">
       <Filter>ui</Filter>
     </ClCompile>
+    <ClCompile Include="ui\UIUpdateTime.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\UIClearTime.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\UILifeManager.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\UICharaLife.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="BackGround.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\UICharaType.cpp">
+      <Filter>ui</Filter>
+    </ClCompile>
+    <ClCompile Include="scene\SceneSelectChara.cpp">
+      <Filter>scene</Filter>
+    </ClCompile>
+    <ClCompile Include="scene\SceneSelect.cpp">
+      <Filter>scene</Filter>
+    </ClCompile>
+    <ClCompile Include="scene\ScenePreparation.cpp">
+      <Filter>scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GameData.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Geometry.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="InputState.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="Camera.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="Stage.h">
@@ -119,41 +161,110 @@
     <ClInclude Include="scene\SceneTitle.h">
       <Filter>scene</Filter>
     </ClInclude>
-    <ClInclude Include="scene\SceneMenu.h">
+    <ClInclude Include="character\CharaBase.h">
+      <Filter>character</Filter>
+    </ClInclude>
+    <ClInclude Include="character\CharaManager.h">
+      <Filter>character</Filter>
+    </ClInclude>
+    <ClInclude Include="TimeData.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="scene\SceneSelectLevel.h">
       <Filter>scene</Filter>
     </ClInclude>
-    <ClInclude Include="PlayerData.h">
+    <ClInclude Include="character\CharaData.h">
+      <Filter>character</Filter>
+    </ClInclude>
+    <ClInclude Include="tool\Camera.h">
+      <Filter>tool</Filter>
+    </ClInclude>
+    <ClInclude Include="tool\Collision3D.h">
+      <Filter>tool</Filter>
+    </ClInclude>
+    <ClInclude Include="tool\InputState.h">
+      <Filter>tool</Filter>
+    </ClInclude>
+    <ClInclude Include="tool\Load.h">
+      <Filter>tool</Filter>
+    </ClInclude>
+    <ClInclude Include="tool\SearchRoute.h">
+      <Filter>tool</Filter>
+    </ClInclude>
+    <ClInclude Include="character\PC.h">
+      <Filter>character</Filter>
+    </ClInclude>
+    <ClInclude Include="tool\AI.h">
+      <Filter>tool</Filter>
+    </ClInclude>
+    <ClInclude Include="PosData.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="character\CharacterBase.h">
+    <ClInclude Include="character\NPC.h">
       <Filter>character</Filter>
     </ClInclude>
-    <ClInclude Include="character\CharacterManager.h">
-      <Filter>character</Filter>
+    <ClInclude Include="scene\SceneAlarum.h">
+      <Filter>scene</Filter>
     </ClInclude>
-    <ClInclude Include="character\Character1.h">
-      <Filter>character</Filter>
-    </ClInclude>
-    <ClInclude Include="character\Character2.h">
-      <Filter>character</Filter>
-    </ClInclude>
-    <ClInclude Include="character\Character3.h">
-      <Filter>character</Filter>
-    </ClInclude>
-    <ClInclude Include="character\Character4.h">
-      <Filter>character</Filter>
-    </ClInclude>
-    <ClInclude Include="TimeDatah.h">
+    <ClInclude Include="ReuseData.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="ui\UITime.h">
-      <Filter>ui</Filter>
+    <ClInclude Include="scene\SceneMenuBase.h">
+      <Filter>scene</Filter>
     </ClInclude>
-    <ClInclude Include="ui\UIBase.h">
+    <ClInclude Include="scene\SceneMenuInGame.h">
+      <Filter>scene</Filter>
+    </ClInclude>
+    <ClInclude Include="scene\SceneMenuEndGame.h">
+      <Filter>scene</Filter>
+    </ClInclude>
+    <ClInclude Include="scene\SceneAlarumRetryGame.h">
+      <Filter>scene</Filter>
+    </ClInclude>
+    <ClInclude Include="scene\SceneAlarumFinishGame.h">
+      <Filter>scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Easing.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\UIMenu.h">
       <Filter>ui</Filter>
     </ClInclude>
     <ClInclude Include="ui\UILife.h">
       <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\UIUpdateTime.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\UIClearTime.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="HandleData.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneData.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\UILifeManager.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\UICharaLife.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="BackGround.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\UICharaType.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="scene\SceneSelectChara.h">
+      <Filter>scene</Filter>
+    </ClInclude>
+    <ClInclude Include="scene\SceneSelect.h">
+      <Filter>scene</Filter>
+    </ClInclude>
+    <ClInclude Include="scene\ScenePreparation.h">
+      <Filter>scene</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

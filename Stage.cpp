@@ -1,326 +1,518 @@
 #include "Stage.h"
-#include <sstream>
+#include "tool/Load.h"
+#include "character/CharaData.h"
+#include "ReuseData.h"
 #include <fstream>
 
 namespace
 {
-	const char* const stageFilePath = "data/StageData.csv";
-	const char* const textureDataFilePath = "data/TextureData.csv";
-	const char* const cubeModelPath = "data/model/Cube.mv1";
+	using namespace std;
 
-	const char* const textureFilePath = "data/model/texture/stage/";
-	const char* const dataExtension = ".png";
+	const char* const blockDataFilePath = "data/BlockData.csv";
+	const char* const blockTextureFilePath = "data/BlockTexture.csv";
 
-	const char* const lightTexturePath = "data/model/texture/StageLight.png";
-	const char* const darkTexturePath = "data/model/texture/StageDark.png";
+	constexpr int blockWidthNum = 8;
+	constexpr int blockAllNum = blockWidthNum * blockWidthNum;
 
-	enum
+	constexpr int delayTime = 30;
+
+	constexpr int intervalFrame = 5;
+
+	constexpr float stageShrinkLine = -5.0f;
+
+	enum TextureChroma
 	{
-		stageWidthSize
+		dark,
+		light,
+		all
 	};
 }
 
 Stage::Stage() :
-	stageSize(0), stageMaxSize(0),
-	modelSize({ 0.0f, 0.0f, 0.0f }),
-	fallPlayer(-1),
-	darkTexture(0)
+	deadNum(0), massNum(0), modelHandle(-1), modelScale({ 0.0f, 0.0f, 0.0f }), widthSize(blockWidthNum), narrowIndex(-1)
 {
 }
 
-Stage::~Stage()
+void Stage::Initialize(ReuseData& reuse)
 {
-}
-
-void Stage::Initialize()
-{
-	LoadStage();
-	LoadModelHandle();
-	InitializeStage();
-	LoadTexture();
+	LoadBlockData(reuse);
+	InitializeBlock();
 }
 
 void Stage::Update()
 {
-	for (int i = 0; i < stageMaxSize; i++)
-	{
-		if (cubeModel[i].isFall)
-		{
-			int index = fallPlayer;
-			if (modelInitTexture[i] == darkTexture) index = fallPlayer;
-			else index = fallPlayer + playerNum;
+	//ステージを狭める
+	if (deadNum != 0) NarrowBlock();
+	else narrowIndex = -1;
 
-			if (!cubeModel[i].isFalling) MV1SetTextureGraphHandle(cubeModel[i].handle, 0, modelTranceTexture[index], false);
-			cubeModel[i].isFall = false;
-			cubeModel[i].isFalling = true;
-		}
+	//ブロックのテクスチャを変更する
+	ChangeBlockTexture();
 
-		if (cubeModel[i].isFalling)
-		{
-			cubeModel[i].pos = VAdd(cubeModel[i].pos, gravity);
-			MV1SetPosition(cubeModel[i].handle, cubeModel[i].pos);
-		}
+	//ステージを落下する
+	FallBlock();
 
-		if (cubeModel[i].pos.y < deadLine)
-		{
-			cubeModel[i].isFalling = false;
-			cubeModel[i].pos.y = 0.0f;
-			MV1SetPosition(cubeModel[i].handle, cubeModel[i].pos);
-			MV1SetTextureGraphHandle(cubeModel[i].handle, 0, modelInitTexture[i], false);
-		}
-	}
+	//落下後
+	UpdateBlock();
+
+	if (narrowIndex < 0) return;
+	//縮小時ブロックがすべて落下し終わったらステージサイズを更新する
+	if (block[narrowIndex].isNone && block[narrowIndex].isFalling) widthSize = blockWidthNum - deadNum * 2;
 }
 
 void Stage::Draw()
 {
-	for (int i = 0; i < stageMaxSize; i++)
+	for (int i = 0; i < blockAllNum; i++)
 	{
-		MV1DrawModel(cubeModel[i].handle);
+		if (!block[i].isDelete) MV1DrawModel(block[i].handle);
 	}
-
-	//XYZ軸描画
-	float lineSize = 300.0f;
-	DrawLine3D(VGet(-lineSize, 0, 0), VGet(lineSize, 0, 0), GetColor(255, 0, 0));
-	DrawLine3D(VGet(0, -lineSize, 0), VGet(0, lineSize, 0), GetColor(0, 255, 0));
-	DrawLine3D(VGet(0, 0, -lineSize), VGet(0, 0, lineSize), GetColor(0, 0, 255));
 }
 
 void Stage::Finalize()
 {
-	for (int i = 0; i < stageMaxSize; i++)
+	for (int i = 0; i < blockAllNum; i++)
 	{
-		MV1DeleteModel(cubeModel[i].handle);
+		MV1DeleteModel(block[i].handle);
 	}
 }
 
-void Stage::SelectFallCube(const vector<VECTOR> direction, const vector<vector<int>> index)
+void Stage::PrevBlock(const float rotateY, const PosData posIndex, const CharaPower charaType, const int charaNum)
 {
-	for (int i = 0; i < direction.size(); i++)
-	{
-		const float rotateY = direction[i].y;
-		if (rotateY < 0.0f) continue;		
-
-		const int currentWidthNum = index[i][0];
-		const int currentHeightNum = index[i][1];
-
-		const int currentIndex = currentHeightNum * stageSize + currentWidthNum;
-
-		//ステージの端からステージ外方向には処理しない
-		if (currentHeightNum == 0 && rotateY == downVec) continue;
-		if (currentWidthNum == 0 && rotateY == leftVec) continue;
-		if (currentHeightNum == stageSize - 1 && rotateY == upVec) continue;
-		if (currentWidthNum == stageSize - 1 && rotateY == rightVec) continue;
-
-		int beginIndex = currentIndex;
-		int endIndex = currentIndex;
-
-		if (rotateY == leftVec)
-		{
-			beginIndex -= 1;
-			endIndex = currentHeightNum * stageSize;
-		}
-		if (rotateY == rightVec)
-		{
-			beginIndex += 1;
-			endIndex = currentHeightNum * stageSize + (stageSize - 1);
-		}
-
-		if (rotateY == upVec)
-		{
-			beginIndex += stageSize;
-			endIndex = stageMaxSize - (stageSize - currentWidthNum);
-		}
-		if (rotateY == downVec)
-		{
-			beginIndex -= stageSize;
-			endIndex = currentWidthNum;
-		}
-
-		SelectCubeLine(beginIndex, endIndex, currentIndex);
-		fallPlayer = i;
-	}	
-}
-
-const RECT Stage::GetStageSize()
-{
-	RECT stageMaxRange = { 0, 0, 0, 0 };
+	if (rotateY < 0.0f) return;
 	
-	stageMaxRange.left = static_cast<long>(cubeModel[0].pos.x - modelSize.x / 2);
-	stageMaxRange.top = static_cast<long>(cubeModel[stageMaxSize - 1].pos.z + modelSize.z / 2);
-	stageMaxRange.right = static_cast<long>(cubeModel[stageMaxSize - 1].pos.x + modelSize.x / 2);
-	stageMaxRange.bottom = static_cast<long>(cubeModel[0].pos.z - modelSize.z / 2);
+	const int indexX = posIndex.x, indexY = posIndex.y;
+	const int currentIndex = posIndex.y * blockWidthNum + indexX;
 
-	return stageMaxRange;
-}
-
-const vector<vector<int>> Stage::GetStageFallData()
-{
-	vector<vector<int>> fallPos;
-	fallPos.resize(stageMaxSize);
-
-	for (int i = 0; i < stageMaxSize; i++)
+	if (charaType == CharaPower::one)
 	{
-		if (cubeModel[i].isFalling)
-		{
-			const int posWidth = cubeModel[i].pos.x - modelSize.x / 2 + stageSize / 2;
-			const int posHeight = cubeModel[i].pos.z - modelSize.z / 2 + stageSize / 2;
+		if (indexX == 0 && rotateY == leftVec) return;
+		if (indexX == blockWidthNum - 1 && rotateY == rightVec) return;
+		if (indexY == 0 && rotateY == frontVec) return;
+		if (indexY == blockWidthNum - 1 && rotateY == backVec) return;
 
-			fallPos[i].push_back(posWidth);
-			fallPos[i].push_back(posHeight);
-			continue;
+		int fallIndex = currentIndex;
+
+		if (rotateY == leftVec)	//左方向
+		{
+			fallIndex -= 1;
+		}
+		if (rotateY == rightVec)//右方向
+		{
+			fallIndex += 1;
+		}
+		if (rotateY == backVec)	//奥方向
+		{
+			fallIndex += blockWidthNum;
+		}
+		if (rotateY == frontVec)//手前方向
+		{
+			fallIndex -= blockWidthNum;
 		}
 
-		fallPos[i].push_back(-1);
-		fallPos[i].push_back(-1);		
+		if (block[fallIndex].isPrepareFall || block[fallIndex].isFalling) return;
+		if (block[fallIndex].isNone || block[fallIndex].isDelete) return;
+
+		block[fallIndex].isPrepareFall = true;
+		block[fallIndex].charaNum = charaNum;
+		block[fallIndex].changeTexTimer = 5;
+		block[fallIndex].fallDelayTimer = 15;
 	}
 
-	return fallPos;
+	if (charaType == CharaPower::line)
+	{
+		if (indexX == 0 && rotateY == leftVec) return;
+		if (indexX == blockWidthNum - 1 && rotateY == rightVec) return;
+		if (indexY == 0 && rotateY == frontVec) return;
+		if (indexY == blockWidthNum - 1 && rotateY == backVec) return;
+
+		vector<int> fallIndex;
+
+		if (rotateY == leftVec)	//左方向
+		{
+			for (int i = 0; i < indexX; i++)
+			{
+				int index = currentIndex - (1 + i);
+				fallIndex.push_back(index);
+			}
+		}
+		if (rotateY == rightVec)//右方向
+		{
+			for (int i = 0; i < blockWidthNum - (indexX + 1); i++)
+			{
+				int index = currentIndex + (1 + i);
+				fallIndex.push_back(index);
+			}
+		}
+		if (rotateY == backVec)	//奥方向
+		{
+			for (int i = 0; i < blockWidthNum - (indexY + 1); i++)
+			{
+				int index = currentIndex + (1 + i) * blockWidthNum;
+				fallIndex.push_back(index);
+			}
+		}
+		if (rotateY == frontVec)//手前方向
+		{
+			for (int i = 0; i < indexY; i++)
+			{
+				int index = currentIndex - (1 + i) * blockWidthNum;
+				fallIndex.push_back(index);
+			}
+		}
+
+		for (int i = 0; i < fallIndex.size(); i++)
+		{
+			const int index = fallIndex[i];
+			if (index < 0) continue;
+			if (blockAllNum <= index) continue;
+			if (block[index].isPrepareFall || block[index].isFalling) continue;
+			if (block[index].isNone || block[index].isDelete) continue;
+
+			block[index].isPrepareFall = true;
+			block[index].charaNum = charaNum;
+			block[index].changeTexTimer = i * intervalFrame;
+			block[index].fallDelayTimer = static_cast<int>(fallIndex.size()) * intervalFrame;
+		}
+	}
+
+	if (charaType == CharaPower::row)
+	{
+		if (indexX == 0 && rotateY == leftVec) return;
+		if (indexX == blockWidthNum - 1 && rotateY == rightVec) return;
+		if (indexY == 0 && rotateY == frontVec) return;
+		if (indexY == blockWidthNum - 1 && rotateY == backVec) return;
+
+		vector<int> fallIndex;
+
+		if (rotateY == leftVec)	//左方向
+		{
+			if (currentIndex / blockWidthNum != 0) fallIndex.push_back(currentIndex - 1 - blockWidthNum);
+			fallIndex.push_back(currentIndex - 1);
+			if (currentIndex / blockWidthNum != blockWidthNum - 1) fallIndex.push_back(currentIndex - 1 + blockWidthNum);
+		}
+		if (rotateY == rightVec)//右方向
+		{
+			if (currentIndex / blockWidthNum != blockWidthNum - 1) fallIndex.push_back(currentIndex + 1 + blockWidthNum);
+			fallIndex.push_back(currentIndex + 1);
+			if (currentIndex / blockWidthNum != 0) fallIndex.push_back(currentIndex + 1 - blockWidthNum);
+		}
+		if (rotateY == backVec)	//奥方向
+		{
+			if (currentIndex % blockWidthNum != 0) fallIndex.push_back(currentIndex + blockWidthNum - 1 );
+			fallIndex.push_back(currentIndex + blockWidthNum);
+			if (currentIndex % blockWidthNum != blockWidthNum - 1) fallIndex.push_back(currentIndex + blockWidthNum + 1 );
+			if (currentIndex % blockWidthNum != blockWidthNum - 1) fallIndex.push_back(currentIndex + blockWidthNum + 1 );
+		}
+		if (rotateY == frontVec)//手前方向
+		{
+			if (currentIndex % blockWidthNum != blockWidthNum - 1) fallIndex.push_back(currentIndex - blockWidthNum + 1);
+			fallIndex.push_back(currentIndex - blockWidthNum);
+			if (currentIndex % blockWidthNum != 0) fallIndex.push_back(currentIndex - blockWidthNum - 1);
+		}
+
+		for (int i = 0; i < fallIndex.size(); i++)
+		{
+			const int index = fallIndex[i];
+			if (index < 0) continue;
+			if (blockAllNum <= index) continue;
+			if (block[index].isPrepareFall || block[index].isFalling) continue;
+			if (block[index].isNone || block[index].isDelete) continue;
+
+			block[index].isPrepareFall = true;
+			block[index].charaNum = charaNum;
+			block[index].changeTexTimer = i * intervalFrame;
+			block[index].fallDelayTimer = static_cast<int>(fallIndex.size()) * intervalFrame;
+		}
+	}
+
+	if (charaType == CharaPower::round)
+	{
+		vector<int> fallIndex;
+
+		if (currentIndex % blockWidthNum != 0)
+		{
+			if (currentIndex / blockWidthNum != blockWidthNum - 1) fallIndex.push_back(currentIndex - 1 + blockWidthNum);
+			if (currentIndex / blockWidthNum != 0) fallIndex.push_back(currentIndex - 1 - blockWidthNum);
+		}
+		if (currentIndex % blockWidthNum != blockWidthNum - 1)
+		{
+			if (currentIndex / blockWidthNum != blockWidthNum - 1) fallIndex.push_back(currentIndex + 1 + blockWidthNum);
+			if (currentIndex / blockWidthNum != 0) fallIndex.push_back(currentIndex + 1 - blockWidthNum);
+		}
+
+		for (int i = 0; i < fallIndex.size(); i++)
+		{
+			const int index = fallIndex[i];
+			if (block[index].isPrepareFall || block[index].isFalling) continue;
+			if (block[index].isNone || block[index].isDelete) continue;
+
+			block[index].isPrepareFall = true;
+			block[index].charaNum = charaNum;
+			block[index].changeTexTimer = i * intervalFrame;
+			block[index].fallDelayTimer = static_cast<int>(fallIndex.size()) * intervalFrame;
+		}
+	
+	}
 }
 
-void Stage::LoadStage()
+const vector<BlockIndexData> Stage::GetBlockData()
 {
-	//ステージデータの読み込み
-	ifstream ifs(stageFilePath);
-	string line;
-	vector<int> stage;
+	vector<BlockIndexData> blockData;
 
-	while (getline(ifs, line))
+	for (int i = 0; i < block.size(); i++)
 	{
-		if (line == "サイズ") continue;
-		vector<string> strvec = split(line, ',');
-		stage.push_back(stoi(strvec[stageWidthSize]));
+		BlockIndexData indexData;
+
+		if (block[i].isFalling || block[i].isDelete)
+		{
+			const int indexX = static_cast<int>(block[i].pos.x - 640.0f - modelScale.x / 2) + blockWidthNum / 2;
+			const int indexY = static_cast<int>(block[i].pos.z - modelScale.z / 2) + blockWidthNum / 2;
+
+			indexData.index = { indexX, indexY };
+			indexData.fallNum = block[i].charaNum;
+			indexData.isFall = block[i].isFall;
+			indexData.isNone = block[i].isNone;
+
+			blockData.push_back(indexData);
+		}
 	}
 
-	stageSize = stage[stageWidthSize];
-	stageMaxSize = stageSize * stageSize;
+	return blockData;
 }
 
-void Stage::LoadModelHandle()
+void Stage::LoadBlockData(ReuseData& reuseData)
 {
-	cubeModel.resize(stageMaxSize);
-
-	//モデルの読み込み
-	const int cubeHandle = MV1LoadModel(cubeModelPath);
-
-	const int colorLight = LoadGraph(lightTexturePath);
-	const int colorDark = LoadGraph(darkTexturePath);
-	darkTexture = colorDark;
-
-	for (int i = 0; i < stageMaxSize; i++)
+	//共通のデータの読込
 	{
-		//2色のモデルを交互に配置する
-		const int duplicateModel = MV1DuplicateModel(cubeHandle);
-		const bool isColorLight = (i / stageSize % 2 == i % stageSize % 2);
-		int texture = 0;
+		Load* load = new Load();
+		ifstream ifs(blockDataFilePath);
+		string line;
 
-		if (isColorLight) texture = colorLight;
-		else texture = colorDark;
+		vector<vector<string>> texture;
+		while (getline(ifs, line))
+		{
+			const vector<string> strvec = load->LoadCSVData(line, ',');
+			const int loadLine = load->GetLoadLine();
 
-		MV1SetTextureGraphHandle(duplicateModel, 0, texture, false);
-		modelInitTexture.push_back(texture);
+			//説明文は省く
+			if (loadLine == commentLine) continue;
+			texture.push_back(strvec);
+		}
+		delete load;
 
-		cubeModel[i].handle = duplicateModel;
-		cubeModel[i].isFall = false;
+		modelHandle = MV1LoadModel(texture.front().front().c_str());
+		
+		for (int i = 0; i < texture.size(); i++)
+		{
+			baseTextureHandle.push_back(LoadGraph(texture[i].back().c_str()));
+		}
 	}
 
-	modelSize = { 1.0f, 1.0f , 1.0f };
+	{
+		vector<int> handle;
+		Load* load = new Load();
+		load->LoadGraphFile(blockTextureFilePath, handle);
+		delete load;
+
+		for (int i = 0; i < charaNumAll; i++)
+		{
+			const int darkTex = i * 2;
+			colorTextureHandle.push_back(handle[darkTex]);
+
+			const int lightTex = darkTex + 1;
+			colorTextureHandle.push_back(handle[lightTex]);
+		}
+	}
 }
 
-void Stage::InitializeStage()
+void Stage::InitializeBlock()
 {
-	//ステージの中央と画面中央が同じになるよう調整
-	float size = static_cast<float>(stageSize / 2);
-	if (stageSize % 2 == 0)
-	{
-		size -= modelSize.x / 2.0f;
-	}
+	modelScale = MV1GetScale(modelHandle);
 
-	size *= -modelSize.x;
-	const VECTOR initPos = { size, 0.0f, size };
+	//ステージの中心が画面中央に来るように調整
+	const float size = modelScale.x / 2.0f - static_cast<float>(blockWidthNum / 2);
+	const VECTOR initPos = { size + 640.0f, 360.0f, size + 0.0f };
 
 	//座標をセット
 	VECTOR pos = initPos;
-	VECTOR widthSpace = { modelSize.x, 0.0f, 0.0f };
-	VECTOR depthSpace = { 0.0f, 0.0f, modelSize.z };
+	const VECTOR widthSpace = { modelScale.x, 0.0f, 0.0f };
+	const VECTOR depthSpace = { 0.0f, 0.0f, modelScale.z };
 
-	//モデルを配置する
-	for (int i = 0; i < stageMaxSize; i++)
+	block.resize(blockAllNum);
+	for (int i = 0; i < blockAllNum; i++)
 	{
-		const int widthNum = i % stageSize;
-		if (widthNum == 0 && i != 0)
+		//コピーモデルを作成
+		const int duplicateModel = MV1DuplicateModel(modelHandle);
+		block[i].handle = duplicateModel;
+
+		if (i % blockWidthNum == 0)
 		{
+			//右端まで敷き詰めたら左端に戻り、Z+方向にモデル1つ分ずらす
 			pos = initPos;
-			const float depthNum = static_cast<float>(i / stageSize);
+			const float depthNum = static_cast<float>(i / blockWidthNum);
 			pos = VAdd(pos, VScale(depthSpace, depthNum));
 		}
-		cubeModel[i].pos = pos;
-		MV1SetPosition(cubeModel[i].handle, cubeModel[i].pos);
+		//ブロックを敷き詰める
+		block[i].pos = pos;
 		pos = VAdd(pos, widthSpace);
+		MV1SetPosition(block[i].handle, block[i].pos);
+
+		const bool isColorLight = (i / blockWidthNum % 2 == i % blockWidthNum % 2);
+
+		//ブロックの色を市松模様にする
+		if (isColorLight) block[i].texture = baseTextureHandle[TextureChroma::dark];
+		else block[i].texture = baseTextureHandle[TextureChroma::light];
+
+		MV1SetTextureGraphHandle(duplicateModel, 0, block[i].texture, false);
 	}
 }
 
-void Stage::LoadTexture()
+const void Stage::NarrowBlock()
 {
-	ifstream ifs(textureDataFilePath);
-	string line;
-	vector<string> textureName;
-
-	while (getline(ifs, line))
+	//狭めるブロックを取得
+	vector<int> leftLine, rightLine, backLine, frontLine;
+	for (int i = 0; i < blockAllNum; i++)
 	{
-		vector<string> strvec = split(line, ',');
-		textureName.push_back(strvec[0]);
+		if (!IsNarrowBlock(i) || block[i].isNone) continue;
+
+		const int indexX = i % blockWidthNum;
+		const int indexY = i / blockWidthNum;
+
+		//4辺か否かのチェック
+		const bool isLeftLine = indexX == deadNum - 1;
+		const bool isRightLine = indexX == blockWidthNum - deadNum;
+		const bool isBackLine = indexY == blockWidthNum - deadNum;
+		const bool isFrontLine = indexY == deadNum - 1;
+		
+		if (isBackLine && !isRightLine) backLine.push_back(i);			//奥列
+		else if (isRightLine && !isFrontLine) rightLine.push_back(i);	//右列	
+		else if (isFrontLine && !isLeftLine) frontLine.push_back(i);	//手前列		
+		else if (isLeftLine && !isBackLine) leftLine.push_back(i);		//左列
+		else continue;
 	}
 
-	for (auto& texName : textureName)
+	if (leftLine.size() == 0 && rightLine.size() == 0 && frontLine.size() == 0 && backLine.size() == 0) return;
+
+	//左上から時計回りの順に配列に入れていく
+	vector<int> fallAll;
+	for (int i = 0; i < backLine.size(); i++)
 	{
-		const string texturePath = textureFilePath + texName + dataExtension;
-		const int texture = LoadGraph(texturePath.c_str());
-		modelTranceTexture.push_back(texture);
+		fallAll.push_back(backLine[i]);
+	}
+	for (int i = static_cast<int>(rightLine.size()) - 1; 0 <= i ; i--)
+	{
+		fallAll.push_back(rightLine[i]);
+	}
+	for (int i = static_cast<int>(frontLine.size()) - 1; 0 <= i ; i--)
+	{
+		fallAll.push_back(frontLine[i]);
+	}
+	for (int i = 0; i < leftLine.size(); i++)
+	{
+		fallAll.push_back(leftLine[i]);
+	}
+
+	for (int i = 0; i < fallAll.size(); i++)
+	{
+		const int index = fallAll[i];
+
+		block[index].isPrepareFall = true;
+		block[index].isNone = true;
+		block[index].changeTexTimer = i * intervalFrame;
+		block[index].fallDelayTimer = (static_cast<int>(fallAll.size()) - i) * intervalFrame;
+
+		narrowIndex = fallAll[i];
 	}
 }
 
-void Stage::SelectCubeLine(const int beginIndex, const int endIndex, const int currentIndex)
+const bool Stage::IsNarrowBlock(const int index)
 {
-	//上方向、右方向
-	if (beginIndex < endIndex)
+	if (index % blockWidthNum < deadNum) return true;
+	if (index / blockWidthNum < deadNum) return true;
+
+	if (blockWidthNum - deadNum <= index % blockWidthNum) return true;
+	if (blockWidthNum - deadNum <= index / blockWidthNum) return true;
+
+	return false;
+}
+
+const void Stage::ChangeBlockTexture()
+{
+	for (int i = 0; i < blockAllNum; i++)
 	{
-		for (int i = beginIndex; i <= endIndex; i++)
+		if (!block[i].isPrepareFall || block[i].isFalling) continue;
+
+		if (--block[i].changeTexTimer < 0)
 		{
-			const bool widthLineCheck = i / stageSize == currentIndex / stageSize;
-			const bool heightLineCheck = i % stageSize == currentIndex % stageSize;
-			const bool isnotFall = !cubeModel[i].isFall && !cubeModel[i].isFalling;
-
-			if (widthLineCheck || heightLineCheck && isnotFall)
-			{
-				cubeModel[i].isFall = true;
-			}
+			DecideTexture(block[i].isNone, i);
+			block[i].isFalling = true;
+			block[i].changeTexTimer = 0;
 		}
 	}
-	//下方向、左方向
+}
+
+void Stage::DecideTexture(const bool isNone, const int index)
+{
+	//ステージ収縮時
+	if (isNone)
+	{
+		int num = TextureChroma::all;
+		if (block[index].texture == baseTextureHandle[TextureChroma::dark]) num += TextureChroma::dark;
+		else num += TextureChroma::light;
+
+		MV1SetTextureGraphHandle(block[index].handle, 0, baseTextureHandle[num], false);
+	}
+	//通常時
 	else
 	{
-		for (int i = beginIndex; endIndex <= i; i--)
-		{
-			const bool widthLineCheck = i / stageSize == currentIndex / stageSize;
-			const bool heightLineCheck = i % stageSize == currentIndex % stageSize;
-			const bool isnotFall = !cubeModel[i].isFall && !cubeModel[i].isFalling;
+		int charaNum = block[index].charaNum * 2;
+		if (block[index].texture == baseTextureHandle[TextureChroma::light]) charaNum += 1;
 
-			if (widthLineCheck || heightLineCheck && isnotFall)
-			{
-				cubeModel[i].isFall = true;
-			}
-		}
+		MV1SetTextureGraphHandle(block[index].handle, 0, colorTextureHandle[charaNum], false);
 	}
 }
 
-vector<string> Stage::split(const string& input, const char delimiter)
+const void Stage::FallBlock()
 {
-	istringstream stream(input);
-	string field;
-	vector<string> result;
-	while (getline(stream, field, delimiter))
+	for (int i = 0; i < blockAllNum; i++)
 	{
-		result.push_back(field);
+		//落下状態にないブロックは処理を行わない
+		if (!block[i].isFalling) continue;
+		if (0 < --block[i].fallDelayTimer) continue;
+
+		block[i].isPrepareFall = false;
+		block[i].pos = VAdd(block[i].pos, gravity);
+		MV1SetPosition(block[i].handle, block[i].pos);
+
+		block[i].fallDelayTimer = 0;
+		block[i].isFall = true;
+
+		//落下中にモデルを縮小する
+		if (stageShrinkLine < block[i].pos.y) continue;
+
+		const float dist = block[i].pos.y - stageDeadLine;
+		const VECTOR scele = VScale(modelScale, dist / -stageShrinkLine);
+		MV1SetScale(block[i].handle, scele);
 	}
-	return result;
+}
+
+const void Stage::UpdateBlock()
+{
+	for (int i = 0; i < blockAllNum; i++)
+	{
+		if (stageDeadLine < block[i].pos.y) continue;
+
+		//縮小時以外の落下したブロックを元に戻す
+		if (!block[i].isNone)
+		{
+			block[i].pos.y = 360.0f;
+			block[i].isFall = false;
+		}
+		else block[i].isDelete = true;
+
+		block[i].isFalling = false;
+
+		MV1SetPosition(block[i].handle, block[i].pos);
+		MV1SetScale(block[i].handle, modelScale);
+		MV1SetTextureGraphHandle(block[i].handle, 0, block[i].texture, false);
+	}
 }

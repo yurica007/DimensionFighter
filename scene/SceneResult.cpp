@@ -1,82 +1,228 @@
 #include "SceneResult.h"
 #include "SceneManager.h"
-#include "SceneTitle.h"
-#include "../PlayerData.h"
-#include "../InputState.h"
-#include "../ui/UITime.h"
+#include "SceneMenuEndGame.h"
+#include "../BackGround.h"
+#include "../character/CharaData.h"
+#include "../tool/InputState.h"
+#include "../tool/Camera.h"
+#include "../ui/UIUpdateTime.h"
+#include "../ui/UIClearTime.h"
+#include "../tool/Load.h"
+#include "../GameData.h"
+#include "../ReuseData.h"
 #include <DxLib.h>
 
 namespace
 {
-	VECTOR uiPos = { 580.0f, 600.0f, 0.0f };
+	using namespace std;
+
+	const char* const uIResultFilePath = "data/UIResult.csv";
+
+	constexpr VECTOR charaPos = { -6.0f, 2.2f, -2.0f };
+	constexpr VECTOR cushionPos = { -6.0f, 0.7f, -1.5f };
+	constexpr VECTOR scale = { 3.0f, 3.0f, 3.0f };
+
+	//X座標
+	constexpr int titlePosX = halfScreenWidth;
+	constexpr int rankPosX = 160;
+	constexpr float posDistX = 4.0f;
+
+	//Y座標
+	constexpr int titlePosY = 100;
+	constexpr int rankPosY = 250;
+
+	//前との距離
+	constexpr int distX = 320;
+	constexpr float distY = 0.2f;
+
+	constexpr int gaussPixelSize = 16;
+	constexpr int gaussParamMax = 1400;
 }
 
-SceneResult::SceneResult(SceneManager& manager) :
-	SceneBase(manager), currentTime(0), ui(new UITime())
-{
-}
-
-SceneResult::~SceneResult()
+SceneResult::SceneResult(SceneManager& manager, Camera& camera, ReuseData& reuse) :
+	SceneBase(manager, camera, reuse),
+	backGround(new BackGround()),
+	updateTime(new UIUpdateTime(reuse, SceneType::result)),
+	clearTime(new UIClearTime(reuse, SceneType::result)),
+	stage(-1), screenGraph(-1), time(0), isFade(false)
 {
 }
 
 void SceneResult::Initialize()
 {
-	currentTime = GetNowCount();
-	ranking.resize(playerNum);
-	ui->Initialize(uiPos);
+	backGround->Initialize(SceneType::result);
+
+	updateTime->Initialize();
+	clearTime->Initialize();
+
+	Time time;
+	reuseData.RewriteTimeData(time);
+	reuseData.SetHighscore(time);
+
+	vector<int> colorNum;
+	reuseData.RewriteColorData(colorNum);
+
+	{
+		VECTOR pos = charaPos;
+		for (int i = 0; i < colorNum.size(); i++)
+		{
+			pos.y = charaPos.y;
+			pos.y -= (ranking[i] - 1) * distY;
+			
+			vector<string> data;
+			reuseData.RewriteCharaData(data, i);
+
+			charaModelHandle.push_back(MV1LoadModel(data[0].c_str()));
+			MV1SetTextureGraphHandle(charaModelHandle[i], 0, LoadGraph(data[1].c_str()), false);
+
+			MV1SetPosition(charaModelHandle[i], pos);
+			pos.x += posDistX;
+		}
+	}
+
+	{
+		const int handle = MV1LoadModel("data/model/cushion.mv1");
+
+		VECTOR pos = cushionPos;
+		for (int i = 0; i < ranking.size(); i++)
+		{
+			for (int j = ranking[i]; j < colorNum.size(); j++)
+			{
+				const int copyModel = MV1DuplicateModel(handle);
+
+				cushionModelHandle.push_back(copyModel);
+				MV1SetScale(copyModel, scale);
+				MV1SetPosition(cushionModelHandle.back(), pos);
+				pos.y += distY;
+			}
+
+			pos.y = cushionPos.y;
+			pos.x += posDistX;
+		}
+	}
+
+	//順位画像の読込み
+	{
+		ifstream ifs(uIResultFilePath);
+		vector<int> resultHandle;
+		LoadFile(ifs, resultHandle);
+
+		int posX = titlePosX, posY = titlePosY;
+		
+		resultHandleData.push_back({ posX, posY, 1.0, 0.0, resultHandle.front()});
+				
+		posX = rankPosX, posY = rankPosY;
+		for (int i = 0; i < ranking.size(); i++)
+		{
+			int handle = resultHandle[ranking[i]];
+			if (ranking[i] == 0) handle = -1;
+
+			resultHandleData.push_back({ posX, posY, 1.0, 0.0, handle });
+
+			posX += distX;
+		}
+	}
+
+	stage = MV1LoadModel("data/model/stage.mv1");
+	MV1SetPosition(stage, { 0.0f, 0.0f, 0.0f });
+
+	screenGraph = MakeScreen(screenWidth, screenHeight, true);
 }
 
 void SceneResult::Update(const InputState& inputState)
 {
-	if (IsTransScene(inputState)) return;
-	ui->SetCurrentTime(clearTime);
-	ui->Update();
+	backGround->Update();
+	const bool isPushScene = sceneState == SceneState::pushScne;
+	if (!isPushScene) UpdateFadein(isFade);
+
+	if (isFade) return;
+
+	if (isPushScene)
+	{
+		SceneMenuEndGame* menuScene = new SceneMenuEndGame(manager_, camera, reuseData);
+		manager_.PushScene(menuScene);
+		menuScene->Initialize();
+		return;
+	}
+
+	if (inputState.IsTriggered(InputType::select) && 60 <= time)
+	{
+		sceneState = SceneState::pushScne;
+	}
+	else sceneState = SceneState::donot;
+
+	camera.SetPosAndVec(SceneType::result);
+	
+	if (time < 60) time++;
+
+	Time time;
+	reuseData.RewriteTimeData(time);
+	updateTime->Update(time, 0);
+	clearTime->Update();
 }
 
 void SceneResult::Draw()
 {
-	DrawString(0, 0, "result", 0xfffff);
+	SetDrawScreen(screenGraph);
+	ClearDrawScreen();
 
-	for (int i = 0; i < playerNum; i++)
+	camera.SetPosAndVec(SceneType::result);
+
+	MV1DrawModel(stage);
+
+	for (int i = 0; i < resultHandleData.size(); i++)
 	{
-		DrawFormatString(i * 320 + 153, 300, 0xffffff, "%d位", ranking[i]);
-		DrawFormatString(i * 320 + 153, 475, 0xffffff, "%dP", i + 1);
-	}
-	ui->Draw();
+		const HandleData result = resultHandleData[i];
 
-	//for (int i = 0; i < 9; i++)
-	//{
-	//	if (i % 2 == 1) DrawLine(160 * i, 0, 160 * i, 740, 0xffffff);
-	//}
-	//DrawFormatString(640, 500, 0xffffff, "%d：%d：%d", clearTime.minutes, clearTime.seconds, clearTime.miliSeconds);
+		DrawRotaGraph(result.posX, result.posY, result.extRate, result.angle, result.handle, true);
+	}
+
+	for (int i = 0; i < cushionModelHandle.size(); i++)
+	{
+		MV1DrawModel(cushionModelHandle[i]);
+	}
+
+	for (int i = 0; i < charaModelHandle.size(); i++)
+	{
+		MV1DrawModel(charaModelHandle[i]);
+	}
+
+	updateTime->Draw();
+	clearTime->Draw();
+	if (sceneState == SceneState::pushScne) GraphFilter(screenGraph, DX_GRAPH_FILTER_GAUSS, gaussPixelSize, gaussParamMax);
+	SetDrawScreen(DX_SCREEN_BACK);
+
+	backGround->Draw();
+	DrawRotaGraph(halfScreenWidth, halfScreenHeight, 1.0, 0.0, screenGraph, true);
+	DrawFadeGraph();
 }
 
 void SceneResult::Finalize()
 {
-	ui->Finalize();
+	backGround->Finalize();
+	delete backGround;
+
+	updateTime->Finalize();
+	delete updateTime;
+	
+	clearTime->Finalize();
+	delete clearTime;
 }
 
-void SceneResult::SetRanking(const vector<int> rank)
+void SceneResult::LoadFile(std::ifstream& ifs, std::vector<int>& handle)
 {
-	if (rank.size() != playerNum) return;
-	ranking = rank;
-}
+	std::string line;
 
-void SceneResult::SetClearTime(const Time time)
-{
-	clearTime = time;
-}
-
-bool SceneResult::IsTransScene(const InputState& inputState)
-{
-	if (inputState.IsTriggered(InputType::debug))
+	Load* load = new Load();
+	while (getline(ifs, line))
 	{
-		SceneTitle* nextScene = new SceneTitle(manager_);
-		manager_.ChangeScene(nextScene);
-		nextScene->Initialize();
-		return true;
-	}
+		const std::string strvec = load->LoadCSV(line, ',');
+		const int loadLine = load->GetLoadLine();
 
-	return false;
+		//説明文は省く
+		if (loadLine == commentLine) continue;
+
+		handle.push_back(LoadGraph(strvec.c_str()));
+	}
+	delete load;
 }

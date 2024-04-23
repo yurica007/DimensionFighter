@@ -1,0 +1,5 @@
+モデルパス,テクスチャパス,移動速度(f/s),硬直時間(1/60)
+data/model/chara.mv1,data/texture/model/red.png,0.035f,10
+data/model/chara.mv1,data/texture/model/green.png,0.02f,40
+data/model/chara.mv1,data/texture/model/blue.png,0.025f,30
+data/model/chara.mv1,data/texture/model/yellow.png,0.03f,20

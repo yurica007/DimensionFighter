@@ -1,28 +1,50 @@
 #pragma once
+#include "../SceneData.h"
+
+enum class SceneState
+{
+	pushScne,
+	popScene,
+	popPushScene,
+	donot
+};
 
 class SceneManager;
+class Camera;
+class ReuseData;
 class InputState;
 
 class SceneBase
 {
 public:
-	SceneBase(SceneManager& manager);
-	virtual ~SceneBase();
+	SceneBase(SceneManager& manager, Camera& camera, ReuseData& reuse);
+	virtual ~SceneBase() {}
 
-	virtual void Initialize();
-	virtual void Update(const InputState& input);
-	virtual void Draw();
-	virtual void Finalize();
+	virtual void Initialize() = 0;
+	virtual void Update(const InputState& input) = 0;
+	virtual void Draw() = 0;
+	virtual void Finalize() = 0;
 
+	const void SetPrevScene(SceneBase* scene) { prevScene = scene; }
+	void ResetSceneState() { sceneState = SceneState::donot; }
 protected:
-	void FadeinUpdate();
-	void FadeoutUpdate();
+	void UpdateFadein(bool& isFade);
+	void UpdateFadeout(bool& isFade);
 
-	virtual bool IsTransScene(const InputState& inputState) { return false; }
+	void DrawFadeGraph();
 
 	SceneManager& manager_;
+	Camera& camera;
+	ReuseData& reuseData;
+	SceneBase* prevScene;
+
+	SceneState sceneState;
+
 	int fadeTimer;
 	int fadeValue;
+
+private:
+	int graph;
 };
 
 

@@ -1,14 +1,20 @@
 #pragma once
 
-namespace Data
+namespace
 {
 	// ウインドウモード設定
-	constexpr bool kWindowMode = true;
+	constexpr bool windowMode = true;
 	// ウインドウ名
-	const char* const kTitleText = "ゲーム名";
+	const char* const titleText = "ディメンションファイター";
 	// ウインドウサイズ
-	constexpr int kScreenWidth = 1280;
-	constexpr int kScreenHeight = 720;
+	constexpr int screenWidth = 1280;
+	constexpr int screenHeight = 720;
 	// カラーモード
-	constexpr int kColorDepth = 32;		// 32 or 16
+	constexpr int colorDepth = 32;		// 32 or 16
 };
+
+namespace
+{
+	constexpr int halfScreenWidth = screenWidth / 2;
+	constexpr int halfScreenHeight = screenHeight / 2;
+}

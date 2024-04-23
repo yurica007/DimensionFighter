@@ -1,189 +1,214 @@
 #include "SceneGame.h"
 #include "SceneManager.h"
-#include "SceneMenu.h"
+#include "SceneMenuInGame.h"
 #include "SceneResult.h"
 #include "../Stage.h"
-#include "../character/CharacterManager.h"
-#include "../ui/UITime.h"
-#include "../ui/UILife.h"
-#include "../PlayerData.h"
-#include "../InputState.h"
+#include "../character/CharaManager.h"
+#include "../ui/UIUpdateTime.h"
+#include "../ui/UIClearTime.h"
+#include "../ui/UILifeManager.h"
+#include "../ui/UICharaType.h"
+#include "../tool/InputState.h"
+#include "../tool/Camera.h"
+#include "../tool/Load.h"
+#include "../ReuseData.h"
+#include "../GameData.h"
+#include "../BackGround.h"
 #include <DxLib.h>
 
 namespace
 {
-	VECTOR uiPos = { 0.0f, 700.0f, 0.0f };
-	const int gageSpace = 210;
+	using namespace std;
+
+	constexpr int timeUpper = 60;
+
+	constexpr int gaussPixelSize = 16;
+	constexpr int gaussParamMax = 1400;
 }
 
-SceneGame::SceneGame(SceneManager& manager) :
-	SceneBase(manager), stage(new Stage()), character(new CharacterManager()),
-	time(new UITime()), prevTime(0), startCount(0), countDown(0)
-
-{
-}
-
-SceneGame::~SceneGame()
+SceneGame::SceneGame(SceneManager& manager, Camera& camera, ReuseData& reuse) :
+	SceneBase(manager, camera, reuse),
+	backGround(new BackGround()),
+	stage(new Stage()), chara(new CharaManager(*stage)),
+	updateTime(new UIUpdateTime(reuse, SceneType::game)),
+	clearTime(new UIClearTime(reuse, SceneType::game)),
+	lifes(new UILifeManager(reuse)),
+	charaType(new UICharaType(reuse)),
+	startCount(charaNumAll), countDown(charaNumAll), screenGraph(-1), isFade(false)
 {
 }
 
 void SceneGame::Initialize()
 {
-	for (int i = 0; i < playerNum; i++)
-	{
-		life.push_back(new UILife());
-	}
+	backGround->Initialize(SceneType::game);
 
-	stage->Initialize();
-	character->Initialize(stage->GetStageSize(), stage->GetStageWidthSize());
-	time->Initialize(uiPos);
+	chara->Initialize(reuseData);
 
-	for (int i = 0; i < playerNum; i++)
-	{
-		life[i]->Initialize({ 325.0f + i * 210.0f, 60.0f, 0.0f });
-	}
+	stage->Initialize(reuseData);
 
+	updateTime->Initialize();
+	clearTime->Initialize();
+	lifes->Initialize(chara->GetCharaHP());
 
-	startCount = playerNum;
-	countDown = playerNum;
+	charaType->Initialize();
+
+	rank.resize(charaNumAll);
+
+	screenGraph = MakeScreen(screenWidth, screenHeight, true);
 }
 
 void SceneGame::Update(const InputState& inputState)
 {
-//	stage->SelectFallCube(character->GetData());
-	stage->SelectFallCube(character->GetDirection(), character->GetCurrentIndex());
-	time->SetStartCount(countDown);
-	time->SetCurrentTime(currentTime);
+	backGround->Update();
+	const bool isChangeScene = sceneState == SceneState::popPushScene;
+	const bool isPushScene = sceneState == SceneState::pushScne;
+	if (!isChangeScene) UpdateFadein(isFade);
+	else UpdateFadeout(isFade);
 
-	stage->Update();
-	//character->Update(inputState, stage->GetStageFallData(), countDown);
-	character->Update(inputState, stage->GetStageFallData(), countDown);
+	if (isFade) return;
 
-	time->Update();
-
-	vector<int> hp = character->GetHP();
-	for (int i = 0; i < playerNum; i++)
+	if (isChangeScene)
 	{
-		life[i]->SetCurrentLife(i, hp[i]);
-		life[i]->Update();
+		Load* load = new Load();
+		load->SaveScore(currentTime);
+		delete load;
+
+		const vector<int> ranking = rank;
+
+		SceneResult* nextScene = new SceneResult(manager_, camera, reuseData);
+		manager_.ChangeScene(nextScene);
+		nextScene->SetRanking(ranking);
+		nextScene->Initialize();
+		return;
 	}
 
-	if (countDown != 0)
+	if (isPushScene)
+	{
+		SceneMenuInGame* menuScene = new SceneMenuInGame(manager_, camera, reuseData);
+		manager_.PushScene(menuScene);
+		menuScene->Initialize();
+		menuScene->SetPrevScene(this);
+		return;
+	}
+
+	if (IsRankChara())
+	{
+		sceneState = SceneState::popPushScene;
+	}
+	else if (inputState.IsTriggered(InputType::menu))
+	{
+		sceneState = SceneState::pushScne;
+	}
+	else sceneState = SceneState::donot;
+
+	camera.Update(4 - chara->GetRemainCharaNum());
+
+	chara->Update(inputState, countDown);
+
+	stage->Update();
+
+	updateTime->Update(currentTime, countDown);
+	clearTime->Update();
+	lifes->Update(chara->GetCharaHP(), chara->GetIsOnStage());
+
+	charaType->Update(chara->GetCharaPos());
+
+	UpdateTime();
+
+	reuseData.SetNowTime(currentTime);
+}
+
+void SceneGame::Draw()
+{
+	SetDrawScreen(screenGraph);
+	ClearDrawScreen();
+
+	camera.SetPosAndVec(SceneType::game);
+
+	chara->Draw();
+	stage->Draw();
+
+	updateTime->Draw();
+	clearTime->Draw();
+	lifes->Draw(screenGraph);
+	//charaType->Draw();
+
+	if (sceneState == SceneState::pushScne) GraphFilter(screenGraph, DX_GRAPH_FILTER_GAUSS, gaussPixelSize, gaussParamMax);
+	SetDrawScreen(DX_SCREEN_BACK);
+	backGround->Draw();
+	DrawRotaGraph(halfScreenWidth, halfScreenHeight, 1.0, 0.0, screenGraph, true);
+	DrawFadeGraph();
+}
+
+void SceneGame::Finalize()
+{
+	backGround->Finalize();
+	delete backGround;
+
+	chara->Finalize();
+	delete chara;
+
+	stage->Finalize();
+	delete stage;
+
+	updateTime->Finalize();
+	delete updateTime;
+
+	clearTime->Finalize();
+	delete clearTime;
+
+	lifes->Finalize();
+	delete lifes;
+}
+
+void SceneGame::UpdateTime()
+{
+	//始まるまでのカウント更新
+	if (0 <= countDown)
 	{
 		startCount++;
-		if (startCount == 60)
+		if (startCount == timeUpper)
 		{
 			startCount = 0;
-			if (0 < countDown) countDown--;
+			countDown--;
 		}
-	}	
+	}
+	//始まってからの経過時間の更新
 	else
 	{
 		currentTime.miliSeconds++;
-		if (currentTime.miliSeconds == 60)
+		if (currentTime.miliSeconds == timeUpper)
 		{
 			currentTime.miliSeconds = 0;
 			currentTime.seconds++;
 		}
 
-		if (currentTime.seconds == 60)
+		if (currentTime.seconds == timeUpper)
 		{
 			currentTime.seconds = 0;
 			currentTime.minutes++;
 		}
 	}
-
-	if (IsTransScene(inputState)) return;
 }
 
-void SceneGame::Draw()
+bool SceneGame::IsRankChara()
 {
-	stage->Draw();
-	character->Draw();
-	time->Draw();
+	int remainPlayerNum = chara->GetRemainCharaNum();
+	const vector<int> hp = chara->GetCharaHP();
 
-	for (int i = 0; i < playerNum; i++)
+	for (int i = 0; i < charaNumAll; i++)
 	{
-		life[i]->Draw();
+		if (hp[i] != 0 || rank[i] != 0) continue;
+		rank[i] = remainPlayerNum + 1;
 	}
 
-//	DrawFormatString(0, 700, 0xfffff, "%d：%d：%d", currentTime.minutes, currentTime.seconds, currentTime.miliSeconds);
-}
-
-void SceneGame::Finalize()
-{
-	stage->Finalize();
-	character->Finalize();
-	time->Finalize();
-
-	for (int i = 0; i < playerNum; i++)
+	for (int i = 0; i < charaNumAll; i++)
 	{
-		life[i]->Finalize();
-		delete life[i];
+		if (remainPlayerNum != 1) continue;
+		if (rank[i] == 0) rank[i] = 1;
 	}
 
-	delete stage;
-	delete character;
-	delete time;
-}
-
-void SceneGame::SetTranceTime(const int tranceCurrentTime)
-{
-	prevTime = tranceCurrentTime;
-	currentTime.seconds -= tranceCurrentTime;
-}
-
-bool SceneGame::IsTransScene(const InputState& inputState)
-{
-	bool isEnd = false;
-	int remainPlayerNum = playerNum;
-	const vector<int> hp = character->GetHP();
-	vector<int> rank;
-	rank.resize(playerNum);
-
-	for (int i = 0; i < playerNum; i++)
-	{
-		if (hp[i] == 0)
-		{
-			rank[i] = remainPlayerNum;
-			remainPlayerNum--;
-		}		
-	}
-
-	for (int i = 0; i < playerNum; i++)
-	{
-		if (remainPlayerNum == 1)
-		{
-			if (rank[i] == 0)
-			{
-				rank[i] = 1;
-			}
-		}
-	}
-
-	if (remainPlayerNum == 1)
-	{
-		isEnd = true;
-	}
-
-	const Time clearTime = currentTime;
-	if (inputState.IsTriggered(InputType::debug) || isEnd)
-	{
-		SceneResult* nextScene = new SceneResult(manager_);
-		manager_.ChangeScene(nextScene);
-		nextScene->Initialize();
-		nextScene->SetRanking(rank);
-		nextScene->SetClearTime(clearTime);
-		return true;
-	}
-
-	if (inputState.IsTriggered(InputType::cancel))
-	{
-		SceneMenu* menuScene = new SceneMenu(manager_);
-		manager_.PushuScene(menuScene);
-		menuScene->Initialize();
-		return true;
-	}
+	if (remainPlayerNum <= 1) return true;
 
 	return false;
 }

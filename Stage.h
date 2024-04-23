@@ -1,55 +1,110 @@
 #pragma once
 #include "StageData.h"
-#include "PlayerData.h"
+#include "PosData.h"
+#include "character/CharaData.h"
 #include <vector>
-#include <string>
 #include <DxLib.h>
 
-using namespace std;
-
-struct ModelData
+struct BlockData
 {
 	int handle = -1;
+	VECTOR pos = { 0.0f, 0.0f, 0.0f };
+
+	int texture = -1;
+
+	bool isPrepareFall = false;
 	bool isFall = false;
 	bool isFalling = false;
-	VECTOR pos = { 0.0f, 0.0f, 0.0f };
+	bool isNone = false;
+	bool isDelete = false;
+
+	int charaNum = -1;
+	int changeTexTimer = 0;
+	int fallDelayTimer = 0;
 };
+
+class ReuseData;
 
 class Stage
 {
 public:
 	Stage();
-	~Stage();
+	~Stage() {}
 
-	void Initialize();
+	void Initialize(ReuseData& reuse);
 	void Update();
 	void Draw();
 	void Finalize();
 
-	void SelectFallCube(const vector<VECTOR> direction, const vector<vector<int>> index);
-	const RECT GetStageSize();
-	const vector<vector<int>> GetStageFallData();
-	const int GetStageWidthSize() { return stageSize; }
+	const int GetStageSize() { return widthSize; }
+
+	void PrevBlock(const float rotateY, const PosData posIndex, const CharaPower charaType, const int charaNum);
+
+	const std::vector<BlockIndexData> GetBlockData();
+
+	/// <summary>
+	/// 死んだキャラクター数を受取る
+	/// </summary>
+	/// <param name="deadCharaNum">死んだキャラクター数</param>
+	const void SetDeadCharaNum(const int deadCharaNum) { deadNum = deadCharaNum; }
 
 private:
-	void LoadStage();
-	void LoadModelHandle();
-	void InitializeStage();
-	void LoadTexture();
+	/// <summary>
+	/// 必要なブロックデータを読込む
+	/// </summary>
+	void LoadBlockData(ReuseData& reuseData);
 
-	void SelectCubeLine(const int beginIndex, const int endIndex, const int currentIndex);
-	vector<string> split(const string& input, const char delimiter);
+	/// <summary>
+	/// ブロックデータを初期化する
+	/// </summary>
+	void InitializeBlock();
 
-	int stageSize;
-	int stageMaxSize;
-	vector<ModelData> cubeModel;
-	vector<int> modelInitTexture;
-	vector<int> modelTranceTexture;
+	/// <summary>
+	/// 死んだキャラクター数に応じてブロックを狭める
+	/// </summary>
+	const void NarrowBlock();
 
-	int fallPlayer;
+	/// <summary>
+	/// 狭めるべきブロックか判定する
+	/// </summary>
+	/// <param name="index">配列番号</param>
+	/// <returns>true：狭める false：狭めない</returns>
+	const bool IsNarrowBlock(const int index);
 
-	VECTOR modelSize;
+	/// <summary>
+	/// ブロックの落下時にテクスチャを変える
+	/// </summary>
+	const void ChangeBlockTexture();
 
-	int darkTexture;
+	/// <summary>
+	/// 変えるテクスチャを決定する
+	/// </summary>
+	/// <param name="isNone">狭めるブロックか否か</param>
+	/// <param name="index">配列番号</param>
+	void DecideTexture(const bool isNone, const int index);
+
+	/// <summary>
+	/// ブロックを落下させる
+	/// </summary>
+	const void FallBlock();
+		
+	/// <summary>
+	/// ブロックの落下が終わった後の処理
+	/// </summary>
+	const void UpdateBlock();
+
+	std::vector<BlockData> block;
+	std::vector<int> baseTextureHandle;
+
+	std::vector<int> colorTextureHandle;
+
+	int deadNum;
+	int massNum;
+
+	int narrowIndex;
+	int widthSize;
+
+	int modelHandle;
+	VECTOR modelScale;
 };
 

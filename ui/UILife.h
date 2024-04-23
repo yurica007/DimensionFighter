@@ -1,26 +1,19 @@
 #pragma once
-#include "UIBase.h"
-#include <DxLib.h>
+#include "../SceneData.h"
+#include "../HandleData.h"
+#include <vector>
 
-class UILife : public UIBase
+class UILife
 {
 public:
 	UILife();
-	virtual ~UILife() {}
+	~UILife() {}
 
-	virtual void Initialize(const VECTOR pos);
-	virtual void Update();
-	virtual void Draw();
-	virtual void Finalize();
-
-	void SetCurrentLife(const int playerNum, const int life);
+	void Initialize(const std::vector<HandleData> handleData);
+	void Draw(const bool isValid);
+	void Finalize();
 
 private:
-	int currentLife;
-	int player;
-	int gaugeHandle;
-	int lifeHandle;
-
-	RECT gaugePos = { 0, 0, 0, 0 };
+	std::vector<HandleData> lifeHandleData;
 };
 

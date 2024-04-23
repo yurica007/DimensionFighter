@@ -1,0 +1,5 @@
+モデルパス,テクスチャパス
+data/model/block.mv1,data/texture/block/dark.png
+data/model/block.mv1,data/texture/block/light.png
+data/model/block.mv1,data/texture/block/darkBlack.png
+data/model/block.mv1,data/texture/block/lightBlack.png

@@ -1,11 +1,14 @@
 #pragma once
 #include "SceneBase.h"
+#include <vector>
+
+class BackGround;
 
 class SceneTitle : public SceneBase
 {
 public:
-	SceneTitle(SceneManager& manager);
-	virtual ~SceneTitle();
+	SceneTitle(SceneManager& manager, Camera& camera, ReuseData& reuse);
+	virtual ~SceneTitle() {}
 
 	virtual void Initialize() override;
 	virtual void Update(const InputState& inputState) override;
@@ -13,8 +16,16 @@ public:
 	virtual void Finalize() override;
 
 private:
-	virtual bool IsTransScene(const InputState& inputState) override;
+	BackGround* backGround;
 
-	int currentTime;
+	int titleHandle;
+	int textHandle;
+
+	float time;
+	float exRate;
+	float swayRate;
+
+	bool isZoom;
+	bool isFade;
 };
 

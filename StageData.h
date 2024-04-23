@@ -1,23 +1,18 @@
 #pragma once
+#include "PosData.h"
 #include <DxLib.h>
-
-struct StageIndex
-{
-	int width = -1;
-	int height = -1;
-};
-
-struct StageFallData
-{
-	bool isFall = false;
-	VECTOR pos = { 0.0f, 0.0f, 0.0f };
-
-	int indexWidth = 0;
-	int indexHeight = 0;
-};
+#include <vector>
 
 namespace
 {
-	const VECTOR gravity = { 0.0f, -0.1f, 0.0f };
-	const float deadLine = -10.0f;
+	constexpr VECTOR gravity = { 0.0f, -0.1f, 0.0f };
+	constexpr float stageDeadLine = 350.0f;
 }
+
+struct BlockIndexData
+{
+	PosData index;
+	int fallNum = -1;
+	bool isFall = false;
+	bool isNone = false;
+};

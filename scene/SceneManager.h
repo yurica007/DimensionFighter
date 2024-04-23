@@ -1,5 +1,7 @@
 #pragma once
+#include "../SceneData.h"
 #include <deque>
+#include <DxLib.h>
 
 class SceneBase;
 class InputState;
@@ -7,52 +9,49 @@ class InputState;
 class SceneManager
 {
 public:
+	SceneManager();
+	~SceneManager() {}
+
+	void Initialize();
+	void Update(const InputState& input);
+	void Draw();
+	void Finalize();
+
 	/// <summary>
-	/// シーンの切り替えを行う
+	/// シーンを切替える
 	/// </summary>
-	/// <param name="scene">切り替えたい次シーンのアドレス</param>
+	/// <param name="scene">切替えるシーン</param>
 	void ChangeScene(SceneBase* scene);
 
 	/// <summary>
-	/// シーンを上に積む
-	/// Updateで実行されるのは上に積まれたシーンのみ
+	/// シーンを上に重ねる
 	/// </summary>
-	void PushuScene(SceneBase* scene);
+	/// <param name="scene">重ねるシーン</param>
+	void PushScene(SceneBase* scene);
 
 	/// <summary>
-	/// シーンを削除する
-	/// Updateで実行されるのは上に積まれたシーンのみ
+	/// シーンを上から削除する
 	/// </summary>
 	void PopScene();
 
+	void ChangePushScene(SceneBase* scene);
+
+	/// <summary>
+	/// シーン終了の準備をする
+	/// </summary>
 	void EndScene();
 
-	bool IsSceneEnd() { return isGameEnd; }
-
 	/// <summary>
-	/// 各シーンの初期化処理を行う
+	/// シーンを終了するか否か取得する
 	/// </summary>
-	void Initialize();
-
-	/// <summary>
-	/// 各シーンのUpdateを行う
-	/// </summary>
-	/// <param name="input">入力ステート</param>
-	void Update(const InputState& input);
-	/// <summary>
-	/// 各シーンの描画を行う
-	/// </summary>
-	void Draw();
-
-	/// <summary>
-	/// 各シーンの終了処理を行う
-	/// </summary>
-	void Finalize();
+	/// <returns>true：シーンを終了する false：シーンを終了しない</returns>
+	const bool IsSceneEnd() { return isGameEnd; }
 
 private:
-	//「今実行中」のシーンを切り替えていきたいので参照ではなくポインタとして宣言
 	std::deque<SceneBase*> scenes_;
+	bool isGameEnd;
 
-	bool isGameEnd = false;
+	LONGLONG updateTime;
+	LONGLONG drawTime;
 };
 

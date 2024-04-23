@@ -110,13 +110,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\DxLib_VC\プロジェクトに追加すべきファイル_VC用</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../Library</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\DxLib_VC\プロジェクトに追加すべきファイル_VC用</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../Library</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -139,51 +140,87 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="character\CharacterBase.cpp" />
-    <ClCompile Include="character\CharacterManager.cpp" />
-    <ClCompile Include="character\Character2.cpp" />
-    <ClCompile Include="Geometry.cpp" />
-    <ClCompile Include="InputState.cpp" />
+    <ClCompile Include="BackGround.cpp" />
+    <ClCompile Include="character\NPC.cpp" />
+    <ClCompile Include="ReuseData.cpp" />
+    <ClCompile Include="scene\ScenePreparation.cpp" />
+    <ClCompile Include="scene\SceneSelect.cpp" />
+    <ClCompile Include="scene\SceneSelectChara.cpp" />
+    <ClCompile Include="scene\SceneAlarumRetryGame.cpp" />
+    <ClCompile Include="scene\SceneAlarumFinishGame.cpp" />
+    <ClCompile Include="scene\SceneMenuBase.cpp" />
+    <ClCompile Include="scene\SceneAlarum.cpp" />
+    <ClCompile Include="scene\SceneMenuInGame.cpp" />
+    <ClCompile Include="scene\SceneMenuEndGame.cpp" />
+    <ClCompile Include="ui\UICharaType.cpp" />
+    <ClCompile Include="ui\UICharaLife.cpp" />
+    <ClCompile Include="ui\UILifeManager.cpp" />
+    <ClCompile Include="ui\UIClearTime.cpp" />
+    <ClCompile Include="ui\UIUpdateTime.cpp" />
+    <ClCompile Include="ui\UILife.cpp" />
+    <ClCompile Include="ui\UIMenu.cpp" />
+    <ClCompile Include="tool\AI.cpp" />
+    <ClCompile Include="character\PC.cpp" />
+    <ClCompile Include="tool\Camera.cpp" />
+    <ClCompile Include="character\CharaBase.cpp" />
+    <ClCompile Include="character\CharaManager.cpp" />
+    <ClCompile Include="tool\Collision3D.cpp" />
+    <ClCompile Include="tool\InputState.cpp" />
+    <ClCompile Include="tool\Load.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="character\Character1.cpp" />
-    <ClCompile Include="character\Character3.cpp" />
-    <ClCompile Include="character\Character4.cpp" />
-    <ClCompile Include="scene\SceneMenu.cpp" />
+    <ClCompile Include="scene\SceneSelectLevel.cpp" />
     <ClCompile Include="scene\SceneResult.cpp" />
     <ClCompile Include="scene\SceneTitle.cpp" />
     <ClCompile Include="Scene\SceneBase.cpp" />
     <ClCompile Include="Scene\SceneGame.cpp" />
     <ClCompile Include="Scene\SceneManager.cpp" />
+    <ClCompile Include="tool\SearchRoute.cpp" />
     <ClCompile Include="Stage.cpp" />
-    <ClCompile Include="ui\UILife.cpp" />
-    <ClCompile Include="ui\UITime.cpp" />
-    <ClCompile Include="ui\UIBase.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="character\CharacterBase.h" />
-    <ClInclude Include="character\CharacterManager.h" />
-    <ClInclude Include="character\Character2.h" />
+    <ClInclude Include="BackGround.h" />
+    <ClInclude Include="character\NPC.h" />
+    <ClInclude Include="Easing.h" />
+    <ClInclude Include="HandleData.h" />
+    <ClInclude Include="PosData.h" />
+    <ClInclude Include="ReuseData.h" />
+    <ClInclude Include="scene\ScenePreparation.h" />
+    <ClInclude Include="scene\SceneSelect.h" />
+    <ClInclude Include="scene\SceneSelectChara.h" />
+    <ClInclude Include="scene\SceneAlarumRetryGame.h" />
+    <ClInclude Include="scene\SceneAlarumFinishGame.h" />
+    <ClInclude Include="scene\SceneMenuBase.h" />
+    <ClInclude Include="scene\SceneAlarum.h" />
+    <ClInclude Include="scene\SceneMenuInGame.h" />
+    <ClInclude Include="scene\SceneMenuEndGame.h" />
+    <ClInclude Include="ui\UICharaType.h" />
+    <ClInclude Include="ui\UICharaLife.h" />
+    <ClInclude Include="ui\UILifeManager.h" />
+    <ClInclude Include="ui\UIClearTime.h" />
+    <ClInclude Include="ui\UIUpdateTime.h" />
+    <ClInclude Include="ui\UILife.h" />
+    <ClInclude Include="ui\UIMenu.h" />
+    <ClInclude Include="tool\AI.h" />
+    <ClInclude Include="character\PC.h" />
+    <ClInclude Include="SceneData.h" />
+    <ClInclude Include="tool\Camera.h" />
+    <ClInclude Include="character\CharaBase.h" />
+    <ClInclude Include="character\CharaManager.h" />
+    <ClInclude Include="tool\Collision3D.h" />
     <ClInclude Include="GameData.h" />
-    <ClInclude Include="Geometry.h" />
-    <ClInclude Include="InputState.h" />
-    <ClInclude Include="character\Character1.h" />
-    <ClInclude Include="character\Character3.h" />
-    <ClInclude Include="character\Character4.h" />
-    <ClInclude Include="PlayerData.h" />
-    <ClInclude Include="scene\SceneMenu.h" />
+    <ClInclude Include="tool\InputState.h" />
+    <ClInclude Include="tool\Load.h" />
+    <ClInclude Include="character\CharaData.h" />
+    <ClInclude Include="scene\SceneSelectLevel.h" />
     <ClInclude Include="scene\SceneResult.h" />
     <ClInclude Include="scene\SceneTitle.h" />
     <ClInclude Include="Scene\SceneBase.h" />
     <ClInclude Include="Scene\SceneGame.h" />
     <ClInclude Include="Scene\SceneManager.h" />
+    <ClInclude Include="tool\SearchRoute.h" />
     <ClInclude Include="Stage.h" />
     <ClInclude Include="StageData.h" />
-    <ClInclude Include="TimeDatah.h" />
-    <ClInclude Include="ui\UILife.h" />
-    <ClInclude Include="ui\UITime.h" />
-    <ClInclude Include="ui\UIBase.h" />
+    <ClInclude Include="TimeData.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
